@@ -1,0 +1,13 @@
+C:\Users\Rubar\Desktop\RoverOnMars\bin\Debug\netcoreapp3.1\RoverOnMars.exe
+C:\Users\Rubar\Desktop\RoverOnMars\bin\Debug\netcoreapp3.1\RoverOnMars.deps.json
+C:\Users\Rubar\Desktop\RoverOnMars\bin\Debug\netcoreapp3.1\RoverOnMars.runtimeconfig.json
+C:\Users\Rubar\Desktop\RoverOnMars\bin\Debug\netcoreapp3.1\RoverOnMars.runtimeconfig.dev.json
+C:\Users\Rubar\Desktop\RoverOnMars\bin\Debug\netcoreapp3.1\RoverOnMars.dll
+C:\Users\Rubar\Desktop\RoverOnMars\bin\Debug\netcoreapp3.1\RoverOnMars.pdb
+C:\Users\Rubar\Desktop\RoverOnMars\obj\Debug\netcoreapp3.1\RoverOnMars.csprojAssemblyReference.cache
+C:\Users\Rubar\Desktop\RoverOnMars\obj\Debug\netcoreapp3.1\RoverOnMars.AssemblyInfoInputs.cache
+C:\Users\Rubar\Desktop\RoverOnMars\obj\Debug\netcoreapp3.1\RoverOnMars.AssemblyInfo.cs
+C:\Users\Rubar\Desktop\RoverOnMars\obj\Debug\netcoreapp3.1\RoverOnMars.csproj.CoreCompileInputs.cache
+C:\Users\Rubar\Desktop\RoverOnMars\obj\Debug\netcoreapp3.1\RoverOnMars.dll
+C:\Users\Rubar\Desktop\RoverOnMars\obj\Debug\netcoreapp3.1\RoverOnMars.pdb
+C:\Users\Rubar\Desktop\RoverOnMars\obj\Debug\netcoreapp3.1\RoverOnMars.genruntimeconfig.cache
