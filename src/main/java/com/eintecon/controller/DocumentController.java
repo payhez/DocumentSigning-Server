@@ -1,13 +1,10 @@
 package com.eintecon.controller;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
@@ -33,23 +30,25 @@ import com.eintecon.service.DocumentSignService;
 public class DocumentController {
 	@Autowired
     private SimpMessagingTemplate simpMessagingTemplate;
-	private String UNSIGNED_URL = "/disk1/apps/files/UnSigned/";
-	private String SIGNED_URL = "/disk1/apps/files/Signed/";
+	SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 	
 	@Autowired
 	DocumentSignService dss;
-	@GetMapping("/documentGetter/{DocumentID}")
+	/*@GetMapping("/documentGetter/{DocumentID}")
 	public DocumentModel  getDocument(@PathVariable String DocumentID){
 		DocumentModel dmc = new DocumentModel();
 		dmc= dss.documentGetMapping(DocumentID);
 		return dmc;
 	}
+	
 	@GetMapping(value="/saveDocument")
 	public DocumentModel saveDocumentModel(@RequestBody DocumentModel dm) {
 		dm=dss.documentSaveMapping(dm);
 		dm.setDocumentUrl("globalUrl/documentGetter/"+dm.getDocumentId());
 		return dm;
-	}
+	}*/
+	
+	//-----------------------------------------------------------------------------------------------------------------
 	@GetMapping(value="/saveDocumentFromLNTrial")
 	//public DocumentModel saveDocumentModelFromLnTrial(@RequestBody DocumentModel dm) {
 	public DocumentModel saveDocumentModelFromLn() {
@@ -59,7 +58,7 @@ public class DocumentController {
 		if (dm !=null) {
 			byte[] bytes = null;
 			try {
-					bytes = convertDocToByteArray("/disk1/apps/apache-tomcat-8.5.61/documentSignService/files/ornek.pdf");
+					bytes = dss.convertDocToByteArray("/disk1/apps/apache-tomcat-8.5.61/documentSignService/files/ornek.pdf");
 				} catch (FileNotFoundException e1) {
 					e1.printStackTrace();
 				} catch (IOException e1) {
@@ -78,30 +77,31 @@ public class DocumentController {
 		    dm.setSigned(false);
 		    dm.setFileExtension(".pdf");
 		    
-		    dm.setDocumentUrl(UNSIGNED_URL+LocalDate.now().toString()+"/"+dm.getName()+"_"+dm.getTrid() + dm.getFileExtension());
-	    	logmodel.setDetails("LN'den gelen dosya("+dm.getName()+") sisteme kaydedildi");
+		    dm.setDocumentUrl(dss.UNSIGNED_URL+LocalDate.now().toString()+"/"+dm.getName()+ dm.getFileExtension());
+		    logmodel.setIssue("LN'den Dosya Alımı");
+		    logmodel.setIssueResult("BAŞARILI");
+	    	logmodel.setDetails("LN'den gelen dosya("+dm.getName()+") sisteme kaydedildi.");
 	    	try {
-		    	convertBytesToFile(dm.isSigned(), bytes, dm.getName()+"_"+dm.getTrid(), dm.getFileExtension());
+		    	dss.convertBytesToFile(dm.isSigned(), bytes, dm.getName(), dm.getFileExtension());
 	    	}catch(Exception e1) {
 	    		dm.setStatus("Dosya servera kaydedilemedi");
+	    		logmodel.setIssueResult("BAŞARISIZ");
 				logmodel.setDetails(e1.toString());
 	    	}
 		    //String stream = Base64.getEncoder().encodeToString(bytes);
 			//byte[] newBytes = Base64.getDecoder().decode(stream);
-	    	SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");  
-		    Date date = new Date();
-	    	dm.setCrt_date(formatter.format(date));
+	    	dm.setCrt_date(formatter.format(new Date()));
 	    	dm.setBinaryData(null);
 	    	
 			if (clntmapModel.isConnected()) {
 				simpMessagingTemplate.convertAndSend("/topic/greetings/" + clntmapModel.getClientID(), dm);
 				dm.setStatus("20-Client aktif ve dosyayı aldı.");
 			}else {
-				logmodel.setDetails("Client Active değil.");
-				dm.setStatus("Client Active değil.");
+				logmodel.setDetails("Client Aktif değil.");
+				dm.setStatus("Client Aktif değil.");
 			}
+			
 			dm=dss.documentSaveMapping(dm);
-		    
 			logmodel.setClientMACID(clntmapModel.getClientID());
 			logmodel.setIssueTime(new Date());
 			logmodel.setTrid(dm.getTrid());
@@ -110,8 +110,15 @@ public class DocumentController {
 		}		
 		return dm;
 	}
-	
-	@PostMapping(value="/saveDocumentFromLN")
+	@GetMapping(value = "/getAllLogsForUser/{userMacId}")
+	public List<LogModel> postLogModelsToUser(@PathVariable String userMacId){
+		List<LogModel> logList = new ArrayList<LogModel>();
+		if(userMacId != null) {
+			logList = dss.logGetMappingByClientMACID(userMacId);
+		}
+		return logList;
+	}
+	/*@GetMapping(value="/saveDocumentFromLN")
 	public DocumentModel saveDocumentModelFromLn(@RequestBody DocumentModel dm) {
 		LogModel logmodel=new LogModel();
 		
@@ -120,7 +127,10 @@ public class DocumentController {
 			
 			ClientMappingModel clntmapModel=new ClientMappingModel();
 			clntmapModel=dss.getClientMapping(dm.getErpID());
+			logmodel.setIssue("LN'den Dosya Alımı");
+		    logmodel.setIssueResult("BAŞARILI");
 			if(clntmapModel == null) {
+				logmodel.setIssueResult("BAŞARISIZ");
 				logmodel.setDetails("Client veriatabininda bulunamadi.");
 				clntmapModel = dss.getClientMapping("aa11");
 				//return null;
@@ -130,19 +140,18 @@ public class DocumentController {
 		    dm.setFileExtension(".pdf");
 			dm.setStatus("10-LN'den dosya geldi.");
 			
-			dm.setDocumentUrl(UNSIGNED_URL+LocalDate.now().toString()+"/"+dm.getName()+"_"+dm.getTrid() + dm.getFileExtension());
+			dm.setDocumentUrl(dss.UNSIGNED_URL+LocalDate.now().toString()+"/"+dm.getName() + dm.getFileExtension());
 	    	logmodel.setDetails("LN'den gelen dosya("+dm.getName()+") sisteme kaydedildi");
 	    	try {
-		    	convertBytesToFile(dm.isSigned(), bytes, dm.getName()+"_"+dm.getTrid(), dm.getFileExtension());
+		    	dss.convertBytesToFile(dm.isSigned(), bytes, dm.getName(), dm.getFileExtension());
 	    	}catch(Exception e1) {
 	    		dm.setStatus("15-Dosya servera kaydedilemedi.");
+	    		logmodel.setIssueResult("BAŞARISIZ");
 				logmodel.setDetails(e1.toString());
 	    	}
 		    //String stream = Base64.getEncoder().encodeToString(bytes);
 			//byte[] newBytes = Base64.getDecoder().decode(stream);
-	    	SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");  
-		    Date date = new Date();
-	    	dm.setCrt_date(formatter.format(date));
+	    	dm.setCrt_date(formatter.format(new Date()));
 	    	dm.setBinaryData(null);
 	    	
 			if (clntmapModel.isConnected()) {
@@ -152,8 +161,8 @@ public class DocumentController {
 				logmodel.setDetails("Client  aktif degil.");
 				dm.setStatus("25-Client aktif degil.");
 			}
+			
 			dm=dss.documentSaveMapping(dm);
-		    
 			logmodel.setClientMACID(clntmapModel.getClientID());
 			logmodel.setIssueTime(new Date());
 			logmodel.setTrid(dm.getTrid());
@@ -161,24 +170,25 @@ public class DocumentController {
 			dss.logSaveMapping(logmodel);
 		}		
 		return dm;
-	}
+	}*/
 	
 	@PostMapping(value="/saveDocumentFromClient")
 	public DocumentModel saveDocumentModelFromClient(@RequestBody DocumentModel dm) {
 		LogModel logmodel=new LogModel();
 		DocumentModel theDocument = null;
 		try {
+			logmodel.setIssue("DÖKÜMAN İMZALAMA");
+			logmodel.setIssueResult("BAŞARILI");
 			logmodel.setDetails("Client'tan gelen dosya("+dm.getName()+") sisteme kaydedildi.");
-			convertBytesToFile(true,dm.getBinaryData(), dm.getName(), dm.getFileExtension());
 			theDocument=dss.documentGetMappingByTrid(dm.getTrid());
-			theDocument.setDocumentUrl(SIGNED_URL+LocalDate.now().toString()+"/" +dm.getName() + "_" + dm.getTrid());
+			dss.convertBytesToFile(true,dm.getBinaryData(), theDocument.getName(), theDocument.getFileExtension());
+			theDocument.setDocumentUrl(dss.SIGNED_URL+LocalDate.now().toString()+"/" +theDocument.getName() + theDocument.getFileExtension());
 			theDocument.setBinaryData(null);
-			SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");  
-		    Date date = new Date();  
-			theDocument.setSign_date(formatter.format(date));
+			theDocument.setSign_date(formatter.format(new Date()));
 			theDocument.setSigned(true);
 			theDocument.setStatus("30-Basarili bir sekilde imzalandi.");
 		} catch(Exception e) {
+			logmodel.setIssueResult("BAŞARISIZ");
 			logmodel.setDetails("Client'tan dosya alma hatası : " + e.toString());
 			theDocument.setStatus("35-Döküman imzalanamadı!");
 
@@ -192,11 +202,11 @@ public class DocumentController {
 	}
 	
 	@GetMapping(value="/getDocumentModelFromClientByTrid/{trid}")
-	public DocumentModel getDocumentModelByTrid(@PathVariable String trid){
+	public DocumentModel getDocumentModelByTrid(@PathVariable String trid){ // This is for the purpose of sending decoded bytes as a String to client
 		DocumentModel docModel=dss.documentGetMappingByTrid(trid);
-		// unsigned dosyadan dosyanın adı ile dosyayı bulacagiz.
+		
 		try {
-			docModel.setBinaryData(convertDocToByteArray(docModel.getDocumentUrl()));
+			docModel.setBinaryData(dss.convertDocToByteArray(docModel.getDocumentUrl()));
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -211,8 +221,8 @@ public class DocumentController {
 	}
 	
 	@GetMapping(value="/getDocumentModelFromClient/{client}/{signed}")
-	public List<DocumentModel> getDocumentModelFromClient(@PathVariable String client, @PathVariable String signed) {		
-		List<DocumentModel> docModelList=null;
+	public List<DocumentModel> getDocumentModelFromClient(@PathVariable String client, @PathVariable String signed) {// This is for the purpose of sending the files that is not received 
+		List<DocumentModel> docModelList=null;																			//by the client in real time
 		if (client !=null && signed.equals("true")) {
 			docModelList=dss.documentGetMappingByClientMacId(client,true);
 		}else if(client !=null && signed.equals("false")) {
@@ -221,53 +231,6 @@ public class DocumentController {
 		
 		return docModelList;
 	}
-	
-	 public static byte[] convertDocToByteArray(String path)throws FileNotFoundException, IOException{
-		File file = new File(path);
-
-        FileInputStream fis = new FileInputStream(file);
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        byte[] buf = new byte[1024];
-        try {
-            for (int readNum; (readNum = fis.read(buf)) != -1;) {
-                bos.write(buf, 0, readNum);
-            }
-        } catch (IOException ex) {
-        }
-        byte[] bytes = bos.toByteArray();
-        return bytes;
-	 }
-	 
-     public void convertBytesToFile(boolean isSigned, byte[] bytes, String fileName, String fileExtension) {
-    	 String url = null;
-    	 File theDir;
-    	 String pathWithDate;
-    	 if(isSigned) {
-    		pathWithDate =SIGNED_URL+LocalDate.now().toString()+"/";
-    		theDir = new File(pathWithDate);
-			if(!theDir.exists()){
-				theDir.mkdirs();
-			}
-    		url = pathWithDate;
-    	 }else {
-    		pathWithDate =UNSIGNED_URL+LocalDate.now().toString()+"/";
-    		theDir = new File(pathWithDate);
- 			if(!theDir.exists()){
- 				theDir.mkdirs();
- 			}
-    		url =  pathWithDate;
-    	 }
-    	 
-    	 try (FileOutputStream fos = new FileOutputStream((url+fileName+fileExtension))) {
-    		   fos.write(bytes);
-    		} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-     }
      
      public String generateString() {
     	int leftLimit = 97; // letter 'a'
