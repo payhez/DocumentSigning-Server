@@ -6,8 +6,15 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.UserPrincipal;
+import java.nio.file.attribute.UserPrincipalLookupService;
 import java.time.LocalDate;
 import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.eintecon.model.ClientMappingModel;
@@ -75,29 +82,36 @@ public class DocumentSignService {
         byte[] bytes = bos.toByteArray();
         return bytes;
 	 }
+	
+	public String createDateFolder(String folder) {
+		
+		File theDir;
+		String pathWithDate;
+		
+		pathWithDate =folder+LocalDate.now().toString()+"/";
+		theDir = new File(pathWithDate);
+		if(!theDir.exists()){
+			theDir.mkdirs();
+		}
+		return pathWithDate;
+	}
 	 
-     public void convertBytesToFile(boolean isSigned, byte[] bytes, String fileName, String fileExtension) {
+    public void convertBytesToFile(boolean isSigned, byte[] bytes, String fileName, String fileExtension) {
+    	
     	 String url = null;
-    	 File theDir;
-    	 String pathWithDate;
     	 if(isSigned) {
-    		pathWithDate =SIGNED_URL+LocalDate.now().toString()+"/";
-    		theDir = new File(pathWithDate);
-			if(!theDir.exists()){
-				theDir.mkdirs();
-			}
-    		url = pathWithDate;
+    		url = createDateFolder(SIGNED_URL);
     	 }else {
-    		pathWithDate =UNSIGNED_URL+LocalDate.now().toString()+"/";
-    		theDir = new File(pathWithDate);
- 			if(!theDir.exists()){
- 				theDir.mkdirs();
- 			}
-    		url =  pathWithDate;
+    		url = createDateFolder(UNSIGNED_URL);
     	 }
-    	 
-    	 try (FileOutputStream fos = new FileOutputStream((url+fileName+fileExtension))) {
+    	 String newFile = url+fileName+fileExtension;
+    	 try (FileOutputStream fos = new FileOutputStream((newFile))) {
     		   fos.write(bytes);
+    		   Path path = Paths.get(newFile);
+    	       FileSystem fileSystem = path.getFileSystem();
+    	       UserPrincipalLookupService service = fileSystem.getUserPrincipalLookupService();
+    	       UserPrincipal userPrincipal = service.lookupPrincipalByName("intecon");
+    	       Files.setOwner(path, userPrincipal);
     		} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

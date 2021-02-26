@@ -10,6 +10,7 @@ public class LogModel {
 	private String trid;
 	private String host;
 	private String details;
+	
 	public String getClientMACID() {
 		return clientMACID;
 	}

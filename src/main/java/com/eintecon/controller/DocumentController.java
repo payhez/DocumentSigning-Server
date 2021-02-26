@@ -96,6 +96,8 @@ public class DocumentController {
 			if (clntmapModel.isConnected()) {
 				simpMessagingTemplate.convertAndSend("/topic/greetings/" + clntmapModel.getClientID(), dm);
 				dm.setStatus("20-Client aktif ve dosyayı aldı.");
+		    	// TODO logmodel.setDetails("Client dosya("+dm.getName()+") sisteme kaydedildi.");
+
 			}else {
 				logmodel.setDetails("Client Aktif değil.");
 				dm.setStatus("Client Aktif değil.");
@@ -118,7 +120,7 @@ public class DocumentController {
 		}
 		return logList;
 	}
-	/*@GetMapping(value="/saveDocumentFromLN")
+	@GetMapping(value="/saveDocumentFromLN")
 	public DocumentModel saveDocumentModelFromLn(@RequestBody DocumentModel dm) {
 		LogModel logmodel=new LogModel();
 		
@@ -170,7 +172,7 @@ public class DocumentController {
 			dss.logSaveMapping(logmodel);
 		}		
 		return dm;
-	}*/
+	}
 	
 	@PostMapping(value="/saveDocumentFromClient")
 	public DocumentModel saveDocumentModelFromClient(@RequestBody DocumentModel dm) {
@@ -179,8 +181,9 @@ public class DocumentController {
 		try {
 			logmodel.setIssue("DÖKÜMAN İMZALAMA");
 			logmodel.setIssueResult("BAŞARILI");
-			logmodel.setDetails("Client'tan gelen dosya("+dm.getName()+") sisteme kaydedildi.");
+			logmodel.setClientMACID(dm.getClient());
 			theDocument=dss.documentGetMappingByTrid(dm.getTrid());
+			logmodel.setDetails("Client'tan gelen dosya("+theDocument.getName()+") sisteme kaydedildi.");
 			dss.convertBytesToFile(true,dm.getBinaryData(), theDocument.getName(), theDocument.getFileExtension());
 			theDocument.setDocumentUrl(dss.SIGNED_URL+LocalDate.now().toString()+"/" +theDocument.getName() + theDocument.getFileExtension());
 			theDocument.setBinaryData(null);

@@ -15,7 +15,6 @@ import com.eintecon.SessionManager;
 import com.eintecon.model.ClientMappingModel;
 import com.eintecon.service.DocumentSignService;
 
-
 @RestController
 @CrossOrigin
 public class UserController {
